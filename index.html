@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pocket Datacenter — server.baltej.me</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    /* ---------------------- ROOT THEME VARIABLES ---------------------- */
+    :root {
+      --bg: #020617;
+      --bg-alt: #0b1120;
+      --card: #111827;
+      --accent: #22c55e;
+      --accent-soft: rgba(34, 197, 94, 0.12);
+      --text: #e5e7eb;
+      --muted: #64748b;
+      --border: rgba(255, 255, 255, 0.08);
+      --danger: #ef4444;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #00040f, #000 70%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 30px 12px;
+    }
+
+    /* ---------------------- WINDOW SHELL ---------------------- */
+    .window {
+      width: 100%;
+      max-width: 900px;
+      background: linear-gradient(145deg, #0d1117, #000);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 0 40px rgba(0,0,0,0.7);
+      overflow: hidden;
+    }
+
+    .window-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+    }
+
+    .dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      background: #454a55;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ef4444; }
+    .dot.yellow { background: #f59e0b; }
+    .dot.green { background: #22c55e; }
+
+    .title {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .title span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .tag {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ---------------------- CONTENT GRID ---------------------- */
+    .content {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 2fr 1.2fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 760px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ---------------------- PANEL ---------------------- */
+    .panel {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      position: relative;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      letter-spacing: 0.08em;
+    }
+
+    /* ---------------------- TERMINAL ---------------------- */
+    .terminal {
+      background: #00040a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      height: 260px;
+      font-family: monospace;
+      font-size: 13px;
+      overflow-y: auto;
+      color: var(--accent);
+    }
+
+    .term-line {
+      display: flex;
+      gap: 6px;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .term-line .p { color: var(--muted); }
+
+    .cursor {
+      width: 6px;
+      background: var(--accent);
+      animation: blink 1s infinite;
+      display: inline-block;
+      height: 14px;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* ---------------------- STATS ---------------------- */
+    .stats {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: #0a0f1a;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .stat-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* ---------------------- SERVICE CARDS ---------------------- */
+    .service {
+      background: #0a0f1a;
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+    .service-title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .service-desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      margin-bottom: 6px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .badge.good {
+      color: var(--accent);
+      border-color: var(--accent-soft);
+      background: var(--accent-soft);
+    }
+
+    .footer {
+      margin-top: 14px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="window">
+
+  <!-- ---------------------- HEADER ---------------------- -->
+  <div class="window-header">
+    <div class="dots">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+    </div>
+
+    <div class="title">
+      <span>server.baltej.me</span> — pocket datacenter
+    </div>
+
+    <div class="tag">ANDROID • TERMUX • CLOUDFLARE</div>
+  </div>
+
+  <!-- ---------------------- CONTENT ---------------------- -->
+  <div class="content">
+
+    <!-- LEFT SIDE -->
+    <div class="panel">
+      <div class="panel-title">LIVE SESSION</div>
+
+      <div class="terminal" id="terminal">
+        <div class="term-line"><span class="p">➜</span> booting pocket datacenter…</div>
+        <div class="term-line"><span class="p">➜</span> routing through Cloudflare tunnel…</div>
+        <div class="term-line"><span class="p">➜</span> device: Samsung F12 (Termux)</div>
+        <div class="term-line"><span class="p">➜</span> mode: development • experiments enabled</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-label">Local Time</div>
+          <div class="stat-value" id="clock">--:--:--</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Page Uptime</div>
+          <div class="stat-value" id="uptime">00:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="panel">
+      <div class="panel-title">SERVICES</div>
+
+      <div class="service">
+        <div class="service-title">Pocket API</div>
+        <div class="service-desc">Running on :8000 → server.baltej.me</div>
+
+        <div class="status">
+          <div class="status-dot"></div>
+          <div class="badge good">ONLINE</div>
+          <div class="badge">HTTP</div>
+        </div>
+      </div>
+
+      <div class="service">
+        <div class="service-title">Web Terminal</div>
+        <div class="service-desc">ttyd → sshweb.baltej.me</div>
+
+        <div class="status">
+          <div class="status-dot"></div>
+          <div class="badge good">OPEN</div>
+          <div class="badge">WEB-SSH</div>
+        </div>
+      </div>
+
+      <div class="service">
+        <div class="service-title">Device Health</div>
+        <div class="service-desc">android • low-power • 24/7 server</div>
+
+        <div class="status">
+          <div class="status-dot"></div>
+          <div class="badge good">HEALTHY</div>
+          <div class="badge">LOCAL</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Powered by <strong>Baltej’s phone</strong> • Termux → Cloudflare Tunnel
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ---------------------- CLOCK + UPTIME ---------------------- */
+  function clock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById("clock").textContent = `${h}:${m}:${s}`;
+  }
+  setInterval(clock, 1000); clock();
+
+  let start = Date.now();
+  function uptime() {
+    let diff = Math.floor((Date.now() - start) / 1000);
+    let mm = String(Math.floor(diff / 60)).padStart(2,'0');
+    let ss = String(diff % 60).padStart(2,'0');
+    document.getElementById("uptime").textContent = `${mm}:${ss}`;
+  }
+  setInterval(uptime, 1000); uptime();
+
+  /* ---------------------- TERMINAL LOG ---------------------- */
+  const terminal = document.getElementById("terminal");
+  function addLog(text) {
+    const line = document.createElement("div");
+    line.className = "term-line";
+    line.innerHTML = `<span class="p">➜</span> ${text}`;
+    terminal.appendChild(line);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  setTimeout(() => addLog("network stable — all tunnels active"), 1000);
+  setTimeout(() => addLog("system ready — welcome, bavi"), 2000);
+</script>
+
+</body>
+</html>
