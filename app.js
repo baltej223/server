@@ -1,17 +1,21 @@
 const API_URL = "/metrics";
 const POLL_MS = 5000;
-const terminal = document.getElementById("terminal");
-
 let start = Date.now();
 let serverOffsetMs = 0; // serverTime - clientTime
+let els = {};
+
+function q(id) {
+  return document.getElementById(id);
+}
 
 /* ---------------------- HELPERS ---------------------- */
 function addLog(text) {
+  if (!els.terminal) return;
   const line = document.createElement("div");
   line.className = "term-line";
   line.innerHTML = `<span class="p">➜</span> ${text}`;
-  terminal.appendChild(line);
-  terminal.scrollTop = terminal.scrollHeight;
+  els.terminal.appendChild(line);
+  els.terminal.scrollTop = els.terminal.scrollHeight;
 }
 
 function formatBytes(bytes = 0) {
@@ -41,6 +45,7 @@ function formatDuration(sec = 0) {
 }
 
 function setStatusDot(el, status) {
+  if (!el) return;
   el.classList.remove("warn", "bad");
   if (status === "warn") el.classList.add("warn");
   if (status === "bad") el.classList.add("bad");
@@ -48,65 +53,71 @@ function setStatusDot(el, status) {
 
 /* ---------------------- CLOCK + UPTIME ---------------------- */
 function updateClock() {
+  if (!els.clock || !els.clockTz) return;
   const now = new Date(Date.now() + serverOffsetMs);
-  const h = String(now.getHours()).padStart(2,'0');
-  const m = String(now.getMinutes()).padStart(2,'0');
-  const s = String(now.getSeconds()).padStart(2,'0');
+  const h = String(now.getHours()).padStart(2, "0");
+  const m = String(now.getMinutes()).padStart(2, "0");
+  const s = String(now.getSeconds()).padStart(2, "0");
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  document.getElementById("clock").textContent = `${h}:${m}:${s}`;
-  document.getElementById("clock-tz").textContent = tz;
+  els.clock.textContent = `${h}:${m}:${s}`;
+  els.clockTz.textContent = tz;
 }
-setInterval(updateClock, 1000); updateClock();
 
 function updatePageUptime() {
+  if (!els.uptime) return;
   let diff = Math.floor((Date.now() - start) / 1000);
-  let mm = String(Math.floor(diff / 60)).padStart(2,'0');
-  let ss = String(diff % 60).padStart(2,'0');
-  document.getElementById("uptime").textContent = `${mm}:${ss}`;
+  let mm = String(Math.floor(diff / 60)).padStart(2, "0");
+  let ss = String(diff % 60).padStart(2, "0");
+  els.uptime.textContent = `${mm}:${ss}`;
 }
-setInterval(updatePageUptime, 1000); updatePageUptime();
 
 /* ---------------------- METRICS RENDER ---------------------- */
 function renderMetrics(data) {
-  // Adjust server clock offset
+  if (!data) return;
+
   const serverTs = Date.parse(data.timestamp);
   if (!Number.isNaN(serverTs)) {
     serverOffsetMs = serverTs - Date.now();
   }
 
-  document.getElementById("hostname").textContent = data.hostname || "unknown";
-  document.getElementById("sys-uptime").textContent = formatDuration(data.system?.uptimeSeconds);
-  document.getElementById("sys-load").textContent = `load: ${data.system?.loadAverage?.["1m"]?.toFixed?.(2) ?? "--"} / ${data.system?.loadAverage?.["5m"]?.toFixed?.(2) ?? "--"} / ${data.system?.loadAverage?.["15m"]?.toFixed?.(2) ?? "--"}`;
-  document.getElementById("sys-cores").innerHTML = `<span class="dot"></span> cores: ${data.system?.cpu?.logicalCores ?? "--"}`;
+  if (els.hostname) els.hostname.textContent = data.hostname || "unknown";
+  if (els.sysUptime) els.sysUptime.textContent = formatDuration(data.system?.uptimeSeconds);
+  if (els.sysLoad) {
+    els.sysLoad.textContent = `load: ${data.system?.loadAverage?.["1m"]?.toFixed?.(2) ?? "--"} / ${data.system?.loadAverage?.["5m"]?.toFixed?.(2) ?? "--"} / ${data.system?.loadAverage?.["15m"]?.toFixed?.(2) ?? "--"}`;
+  }
+  if (els.sysCores) {
+    els.sysCores.innerHTML = `<span class="dot"></span> cores: ${data.system?.cpu?.logicalCores ?? "--"}`;
+  }
 
   const cpuPct = Number(data.system?.cpu?.loadPercent ?? 0);
-  document.getElementById("cpu-load").textContent = Number.isFinite(cpuPct) ? `${cpuPct.toFixed(1)}%` : "--%";
-  document.getElementById("cpu-bar").style.width = `${Math.min(Math.max(cpuPct, 0), 100)}%`;
+  if (els.cpuLoad) els.cpuLoad.textContent = Number.isFinite(cpuPct) ? `${cpuPct.toFixed(1)}%` : "--%";
+  if (els.cpuBar) els.cpuBar.style.width = `${Math.min(Math.max(cpuPct, 0), 100)}%`;
   const lastSampleMs = data.system?.cpu?.lastSampleMs;
   const ageMs = lastSampleMs ? Date.now() - lastSampleMs : null;
-  document.getElementById("cpu-sample").textContent = lastSampleMs ? `sampled ${Math.round(ageMs/1000)}s ago` : "sampling…";
+  if (els.cpuSample) els.cpuSample.textContent = lastSampleMs ? `sampled ${Math.round(ageMs / 1000)}s ago` : "sampling…";
 
   const mem = data.system?.memory || {};
   const usedPct = Number(mem.usedPercent ?? 0);
-  document.getElementById("mem-used").textContent = `${formatBytes(mem.usedBytes)} / ${formatBytes(mem.totalBytes)}`;
-  document.getElementById("mem-free").textContent = `free: ${formatBytes(mem.freeBytes)}`;
-  document.getElementById("mem-bar").style.width = `${Math.min(Math.max(usedPct, 0), 100)}%`;
+  if (els.memUsed) els.memUsed.textContent = `${formatBytes(mem.usedBytes)} / ${formatBytes(mem.totalBytes)}`;
+  if (els.memFree) els.memFree.textContent = `free: ${formatBytes(mem.freeBytes)}`;
+  if (els.memBar) els.memBar.style.width = `${Math.min(Math.max(usedPct, 0), 100)}%`;
 
   const proc = data.process || {};
-  document.getElementById("proc-uptime").textContent = `up ${formatDuration(proc.uptimeSeconds)}`;
-  document.getElementById("proc-mem").textContent = `rss: ${formatBytes(proc.rssBytes)} • heap: ${formatBytes(proc.heapUsedBytes)} / ${formatBytes(proc.heapTotalBytes)}`;
-  document.getElementById("proc-pid").innerHTML = `<span class="dot"></span> pid: ${proc.pid ?? "--"}`;
+  if (els.procUptime) els.procUptime.textContent = `up ${formatDuration(proc.uptimeSeconds)}`;
+  if (els.procMem) els.procMem.textContent = `rss: ${formatBytes(proc.rssBytes)} • heap: ${formatBytes(proc.heapUsedBytes)} / ${formatBytes(proc.heapTotalBytes)}`;
+  if (els.procPid) els.procPid.innerHTML = `<span class="dot"></span> pid: ${proc.pid ?? "--"}`;
 
-  document.getElementById("last-sync").textContent = new Date(Date.now() + serverOffsetMs).toLocaleTimeString();
+  if (els.lastSync) els.lastSync.textContent = new Date(Date.now() + serverOffsetMs).toLocaleTimeString();
 }
 
 /* ---------------------- API STATUS ---------------------- */
 function setApiStatus(state, message) {
-  const tag = document.getElementById("api-status-tag");
-  const apiDot = document.getElementById("api-dot");
-  const apiBadge = document.getElementById("api-badge");
-  const healthDot = document.getElementById("health-dot");
-  const healthBadge = document.getElementById("health-badge");
+  const tag = els.apiStatusTag;
+  const apiDot = els.apiDot;
+  const apiBadge = els.apiBadge;
+  const healthDot = els.healthDot;
+  const healthBadge = els.healthBadge;
+  if (!tag || !apiDot || !apiBadge || !healthDot || !healthBadge) return;
 
   if (state === "online") {
     tag.textContent = "API • online";
@@ -147,10 +158,4 @@ async function pollMetrics() {
   }
 }
 
-pollMetrics();
-setInterval(pollMetrics, POLL_MS);
-
-// Initial log
-setTimeout(() => addLog("network stable — all tunnels active"), 1000);
-setTimeout(() => addLog("system ready — welcome"), 2000);
-setTimeout(() => addLog("metrics polling every 5s"), 2600);
+/* ---------------------- INIT ----------------------
