@@ -1,7 +1,9 @@
 /**
  * Production-ready Express server:
- * - Serves index.html at `/` (cached in-memory, with cache headers)
+ * - Serves index.html at `/` (cached in-memory)
+ * - Serves static assets from the current directory (e.g., app.js)
  * - Exposes /health (204) and /metrics (JSON)
+ * - Sets a CSP that allows self-hosted scripts and optional Cloudflare beacon
  *
  * Install: npm i express helmet morgan compression
  * Run:     PORT=3000 NODE_ENV=production node server.js
@@ -16,7 +18,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
 // Resolve paths
 const __filename = fileURLToPath(import.meta.url);
@@ -34,14 +36,48 @@ async function loadIndexHtml() {
   return indexCache;
 }
 
-// --- Middleware hardening ---
+// --- Middleware hardening + CSP ---
 app.set("trust proxy", true);
-app.use(helmet());
+
+// If you remove Cloudflare beacon, drop it from scriptSrc
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'", "https://static.cloudflareinsights.com"], // remove host if not needed
+  styleSrc: ["'self'", "'unsafe-inline'"], // inline <style> in index.html
+  imgSrc: ["'self'", "data:"],
+  connectSrc: ["'self'"],
+  objectSrc: ["'none'"],
+  baseUri: ["'self'"],
+  frameAncestors: ["'self'"],
+  upgradeInsecureRequests: [],
+};
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: cspDirectives,
+    },
+  })
+);
+
 app.use(compression());
 app.use(express.json({ limit: "100kb" }));
 app.use(
   morgan(process.env.NODE_ENV === "production" ? "combined" : "dev", {
     skip: () => process.env.NODE_ENV === "test",
+  })
+);
+
+// Serve static assets (app.js, etc.) with caching
+app.use(
+  express.static(__dirname, {
+    maxAge: "1h",
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        // Let the explicit handler control caching for index.html
+        res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+      }
+    },
   })
 );
 
@@ -123,7 +159,7 @@ app.get("/metrics", (_req, res) => {
       cpu: {
         logicalCores: os.cpus().length,
         loadPercent: Number(cpuLoadPercent.toFixed(2)),
-        lastSampleMs: lastCpuSampleMs, // renamed to match UI
+        lastSampleMs: lastCpuSampleMs, // matches UI expectation
       },
       memory: getMemoryStats(),
     },
@@ -136,7 +172,6 @@ app.get("/", async (_req, res) => {
   try {
     const html = await loadIndexHtml();
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    // cache for 60s; adjust as desired
     res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
     if (indexMtimeMs) {
       res.setHeader("Last-Modified", new Date(indexMtimeMs).toUTCString());
