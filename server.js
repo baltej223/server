@@ -1,12 +1,3 @@
-/**
- * Production-ready Express server:
- * - Serves index.html at `/` (no caching)
- * - Serves static assets from the current directory (e.g., app.js)
- * - Exposes /health (204) and /metrics (JSON)
- *
- * Install: npm i express helmet morgan compression
- * Run:     PORT=3000 NODE_ENV=production node server.js
- */
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -16,21 +7,21 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
-// Resolve paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const INDEX_PATH = path.join(__dirname, "index.html");
 
-// --- Middleware hardening + CSP ---
-app.set("trust proxy", true);
-
-// Keep Cloudflare beacon only if you need it; otherwise remove that host.
+// CSP updated: include the Cloudflare inline bootstrap hash
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "https://static.cloudflareinsights.com"],
-  styleSrc: ["'self'", "'unsafe-inline'"], // inline <style> remains
+  scriptSrc: [
+    "'self'",
+    "https://static.cloudflareinsights.com",
+    "'sha256-xRxUTO9nYMJT2pj8SJ2P3Pkh2fvl6I7MJplY5jzdWGA='"
+  ],
+  styleSrc: ["'self'", "'unsafe-inline'"],
   imgSrc: ["'self'", "data:"],
   connectSrc: ["'self'"],
   objectSrc: ["'none'"],
@@ -39,14 +30,12 @@ const cspDirectives = {
   upgradeInsecureRequests: [],
 };
 
+app.set("trust proxy", true);
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: cspDirectives,
-    },
+    contentSecurityPolicy: { directives: cspDirectives },
   })
 );
-
 app.use(compression());
 app.use(express.json({ limit: "100kb" }));
 app.use(
@@ -55,27 +44,26 @@ app.use(
   })
 );
 
-// Serve static assets (app.js, etc.) — allow caching for assets, but not index.html
+// Static assets (cache ok); index.html will be served with no-store below
 app.use(
   express.static(__dirname, {
     maxAge: "1h",
     setHeaders: (res, filePath) => {
       if (filePath.endsWith("index.html")) {
-        // Override: no caching for the HTML
         res.setHeader("Cache-Control", "no-store");
       }
     },
   })
 );
 
-// --- CPU sampling (rolling snapshot) ---
+// CPU sampling
 let cpuSnapshot = sampleCpuTimes();
 let cpuLoadPercent = 0;
-let lastCpuSampleMs = Date.now();
+let lastSampleMs = Date.now();
 
 function sampleCpuTimes() {
   const cpus = os.cpus();
-  const totals = cpus.reduce(
+  return cpus.reduce(
     (acc, cpu) => {
       acc.idle += cpu.times.idle;
       acc.total +=
@@ -88,9 +76,7 @@ function sampleCpuTimes() {
     },
     { idle: 0, total: 0 }
   );
-  return totals;
 }
-
 function refreshCpuLoad() {
   const current = sampleCpuTimes();
   const idleDiff = current.idle - cpuSnapshot.idle;
@@ -98,14 +84,10 @@ function refreshCpuLoad() {
   const busy = Math.max(totalDiff - idleDiff, 0);
   cpuLoadPercent = totalDiff > 0 ? (busy / totalDiff) * 100 : 0;
   cpuSnapshot = current;
-  lastCpuSampleMs = Date.now();
+  lastSampleMs = Date.now();
 }
+setInterval(refreshCpuLoad, 1000).unref();
 
-// Sample CPU once per second
-const cpuTimer = setInterval(refreshCpuLoad, 1000);
-cpuTimer.unref();
-
-// --- Helpers ---
 function getMemoryStats() {
   const free = os.freemem();
   const total = os.totalmem();
@@ -117,7 +99,6 @@ function getMemoryStats() {
     usedPercent: total > 0 ? (used / total) * 100 : 0,
   };
 }
-
 function getProcessStats() {
   const mem = process.memoryUsage();
   return {
@@ -129,9 +110,7 @@ function getProcessStats() {
   };
 }
 
-// --- Routes ---
 app.get("/health", (_req, res) => res.sendStatus(204));
-
 app.get("/metrics", (_req, res) => {
   res.json({
     timestamp: new Date().toISOString(),
@@ -146,7 +125,7 @@ app.get("/metrics", (_req, res) => {
       cpu: {
         logicalCores: os.cpus().length,
         loadPercent: Number(cpuLoadPercent.toFixed(2)),
-        lastSampleMs: lastCpuSampleMs,
+        lastSampleMs,
       },
       memory: getMemoryStats(),
     },
@@ -154,25 +133,19 @@ app.get("/metrics", (_req, res) => {
   });
 });
 
-// Serve index.html with no caching
+// No caching for index.html
 app.get("/", (_req, res) => {
-  // res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Cache-Control", "no-store");
   res.sendFile(INDEX_PATH);
 });
 
-// --- Server lifecycle ---
 const server = app.listen(PORT, () => {
   console.log(`Metrics API listening on :${PORT}`);
 });
-
-function shutdown(signal) {
-  console.log(`${signal} received, shutting down...`);
-  clearInterval(cpuTimer);
-  server.close(() => {
-    console.log("HTTP server closed");
-    process.exit(0);
-  });
-  setTimeout(() => process.exit(1), 5000).unref();
-}
-
-["SIGTERM", "SIGINT"].forEach((sig) => process.on(sig, () => shutdown(sig)));
+["SIGTERM", "SIGINT"].forEach((sig) =>
+  process.on(sig, () => {
+    console.log(`${sig} received, shutting down...`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 5000).unref();
+  })
+);
