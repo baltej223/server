@@ -52,24 +52,24 @@ function setStatusDot(el, status) {
 }
 
 /* ---------------------- CLOCK + UPTIME ---------------------- */
-function updateClock() {
-  if (!els.clock || !els.clockTz) return;
-  const now = new Date(Date.now() + serverOffsetMs);
-  const h = String(now.getHours()).padStart(2, "0");
-  const m = String(now.getMinutes()).padStart(2, "0");
-  const s = String(now.getSeconds()).padStart(2, "0");
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  els.clock.textContent = `${h}:${m}:${s}`;
-  els.clockTz.textContent = tz;
-}
+// function updateClock() {
+//   if (!els.clock || !els.clockTz) return;
+//   const now = new Date(Date.now() + serverOffsetMs);
+//   const h = String(now.getHours()).padStart(2, "0");
+//   const m = String(now.getMinutes()).padStart(2, "0");
+//   const s = String(now.getSeconds()).padStart(2, "0");
+//   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+//   els.clock.textContent = `${h}:${m}:${s}`;
+//   els.clockTz.textContent = tz;
+// }
 
-function updatePageUptime() {
-  if (!els.uptime) return;
-  let diff = Math.floor((Date.now() - start) / 1000);
-  let mm = String(Math.floor(diff / 60)).padStart(2, "0");
-  let ss = String(diff % 60).padStart(2, "0");
-  els.uptime.textContent = `${mm}:${ss}`;
-}
+// function updatePageUptime() {
+//   if (!els.uptime) return;
+//   let diff = Math.floor((Date.now() - start) / 1000);
+//   let mm = String(Math.floor(diff / 60)).padStart(2, "0");
+//   let ss = String(diff % 60).padStart(2, "0");
+//   els.uptime.textContent = `${mm}:${ss}`;
+// }
 
 /* ---------------------- METRICS RENDER ---------------------- */
 function renderMetrics(data) {
