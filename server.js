@@ -3,7 +3,7 @@
  * - Serves index.html at `/` (cached in-memory)
  * - Serves static assets from the current directory (e.g., app.js)
  * - Exposes /health (204) and /metrics (JSON)
- * - Sets a CSP that allows self-hosted scripts and optional Cloudflare beacon
+ * - Sets a CSP that allows self-hosted scripts and (optionally) Cloudflare beacon
  *
  * Install: npm i express helmet morgan compression
  * Run:     PORT=3000 NODE_ENV=production node server.js
@@ -18,7 +18,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
 // Resolve paths
 const __filename = fileURLToPath(import.meta.url);
@@ -39,11 +39,16 @@ async function loadIndexHtml() {
 // --- Middleware hardening + CSP ---
 app.set("trust proxy", true);
 
-// If you remove Cloudflare beacon, drop it from scriptSrc
+// Add the hash for the inline snippet the browser reported.
+// Remove the hash if you remove that inline script from your HTML.
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "https://static.cloudflareinsights.com"], // remove host if not needed
-  styleSrc: ["'self'", "'unsafe-inline'"], // inline <style> in index.html
+  scriptSrc: [
+    "'self'",
+    "https://static.cloudflareinsights.com",
+    "'sha256-4X4vtaMA1nKwjf1LliuNfGrTSPLjX6QARgIg1Nxy4q8='"
+  ],
+  styleSrc: ["'self'", "'unsafe-inline'"], // inline <style> still present
   imgSrc: ["'self'", "data:"],
   connectSrc: ["'self'"],
   objectSrc: ["'none'"],
@@ -74,7 +79,6 @@ app.use(
     maxAge: "1h",
     setHeaders: (res, filePath) => {
       if (filePath.endsWith("index.html")) {
-        // Let the explicit handler control caching for index.html
         res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       }
     },
@@ -159,7 +163,7 @@ app.get("/metrics", (_req, res) => {
       cpu: {
         logicalCores: os.cpus().length,
         loadPercent: Number(cpuLoadPercent.toFixed(2)),
-        lastSampleMs: lastCpuSampleMs, // matches UI expectation
+        lastSampleMs: lastCpuSampleMs,
       },
       memory: getMemoryStats(),
     },
@@ -195,7 +199,6 @@ function shutdown(signal) {
     console.log("HTTP server closed");
     process.exit(0);
   });
-  // Safety net
   setTimeout(() => process.exit(1), 5000).unref();
 }
 
