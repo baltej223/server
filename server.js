@@ -1,9 +1,8 @@
 /**
  * Production-ready Express server:
- * - Serves index.html at `/` (cached in-memory)
+ * - Serves index.html at `/` (no caching)
  * - Serves static assets from the current directory (e.g., app.js)
  * - Exposes /health (204) and /metrics (JSON)
- * - Sets a CSP that allows self-hosted scripts and (optionally) Cloudflare beacon
  *
  * Install: npm i express helmet morgan compression
  * Run:     PORT=3000 NODE_ENV=production node server.js
@@ -13,7 +12,6 @@ import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 import os from "os";
-import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -25,30 +23,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const INDEX_PATH = path.join(__dirname, "index.html");
 
-// In-memory cache for index.html
-let indexCache = null;
-let indexMtimeMs = null;
-async function loadIndexHtml() {
-  if (indexCache) return indexCache;
-  const stat = await fs.stat(INDEX_PATH);
-  indexMtimeMs = stat.mtimeMs;
-  indexCache = await fs.readFile(INDEX_PATH, "utf8");
-  return indexCache;
-}
-
 // --- Middleware hardening + CSP ---
 app.set("trust proxy", true);
 
-// Add the hash for the inline snippet the browser reported.
-// Remove the hash if you remove that inline script from your HTML.
+// Keep Cloudflare beacon only if you need it; otherwise remove that host.
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: [
-    "'self'",
-    "https://static.cloudflareinsights.com",
-    "'sha256-4X4vtaMA1nKwjf1LliuNfGrTSPLjX6QARgIg1Nxy4q8='"
-  ],
-  styleSrc: ["'self'", "'unsafe-inline'"], // inline <style> still present
+  scriptSrc: ["'self'", "https://static.cloudflareinsights.com"],
+  styleSrc: ["'self'", "'unsafe-inline'"], // inline <style> remains
   imgSrc: ["'self'", "data:"],
   connectSrc: ["'self'"],
   objectSrc: ["'none'"],
@@ -73,13 +55,14 @@ app.use(
   })
 );
 
-// Serve static assets (app.js, etc.) with caching
+// Serve static assets (app.js, etc.) — allow caching for assets, but not index.html
 app.use(
   express.static(__dirname, {
     maxAge: "1h",
     setHeaders: (res, filePath) => {
       if (filePath.endsWith("index.html")) {
-        res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+        // Override: no caching for the HTML
+        res.setHeader("Cache-Control", "no-store");
       }
     },
   })
@@ -171,20 +154,10 @@ app.get("/metrics", (_req, res) => {
   });
 });
 
-// Serve cached index.html
-app.get("/", async (_req, res) => {
-  try {
-    const html = await loadIndexHtml();
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
-    if (indexMtimeMs) {
-      res.setHeader("Last-Modified", new Date(indexMtimeMs).toUTCString());
-    }
-    res.send(html);
-  } catch (err) {
-    console.error("Failed to serve index.html", err);
-    res.status(500).send("Server error");
-  }
+// Serve index.html with no caching
+app.get("/", (_req, res) => {
+  // res.setHeader("Cache-Control", "no-store");
+  res.sendFile(INDEX_PATH);
 });
 
 // --- Server lifecycle ---
