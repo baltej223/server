@@ -64,6 +64,6 @@ app.delete('/delete/:filename', auth, (req, res) => {
     });
 });
 
-app.listen(5000, '0.0.0.0', () => {
+app.listen(8000, () => {
     console.log('Server running on port 5000');
 });
