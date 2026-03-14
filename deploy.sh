@@ -1,4 +1,6 @@
-cd src
-npm i --force
-npm start
+#!/bin/bash
 
+cd src
+
+npm install --force
+npm start
