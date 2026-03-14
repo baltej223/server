@@ -10,4 +10,4 @@ mv ./.env ./src/.env
 cd ./src
 npm i --force
 sleep 10
-npm start
+nohup npm start > /dev/null 2>&1 &
