@@ -78,6 +78,32 @@ app.post('/redeploy', (_req: Request, res: Response) => {
     });
 });
 
+app.get('/test-spawn', (_req: Request, res: Response) => {
+    console.log("=== TEST SPAWN DEBUG ===");
+    
+    const scriptPath = path.resolve(process.cwd(), "..","redeploy.sh");
+    console.log("Script path:", scriptPath);
+
+    const child = spawn("bash", [scriptPath], {
+        stdio: ["ignore", "pipe", "pipe"],
+        cwd: process.cwd()
+    });
+
+    child.stdout.on("data", (data) => {
+        console.log(`[test stdout]: ${data}`);
+    });
+
+    child.stderr.on("data", (data) => {
+        console.error(`[test stderr]: ${data}`);
+    });
+
+    child.on("close", (code) => {
+        console.log(`[test exited with code ${code}]`);
+    });
+
+    res.json({ message: "Test spawn done - check terminal output" });
+});
+
 
 process.on("SIGINT", () => {
     console.log("Shutting down server...");
