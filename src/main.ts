@@ -50,6 +50,12 @@ app.get('/redeploy', (_req: Request, res: Response) => {
   });
 });
 
+process.on("SIGINT", () => {
+  console.log("Shutting down server...");
+  server.close(() => process.exit(0));
+});
+
+
 const server = app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
