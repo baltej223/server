@@ -53,7 +53,19 @@ app.post('/redeploy', (_req: Request, res: Response) => {
 
     const child = spawn("bash", [scriptPath], {
         detached: true,
-        stdio: "ignore"
+        stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    child.stdout.on("data", (data) => {
+        console.log(`[redeploy stdout]: ${data}`);
+    });
+
+    child.stderr.on("data", (data) => {
+        console.error(`[redeploy stderr]: ${data}`);
+    });
+
+    child.on("close", (code) => {
+        console.log(`[redeploy exited with code ${code}]`);
     });
 
     child.unref();
