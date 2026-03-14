@@ -5,6 +5,10 @@ import LogRecorder from "./logs.ts";
 // FOR CI-CD
 import { spawn } from "child_process";
 import path from "path";
+import { dot } from 'node:test/reporters';
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +27,10 @@ app.get('/', (_req: Request, res: Response) => {
 app.get('/redeploy', (_req:Request, res:Response)=>{
     // it runs a redeploy.sh 
     // How can I do it?
+    if (!process.env.REDEPLOY_SECRET) {
+        return res.status(500).send("Redeploy secret not set");
+    }
+    
     if (_req.headers.authorization !== process.env.REDEPLOY_SECRET) {
         return res.status(403).send("Forbidden");
     }
