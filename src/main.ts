@@ -20,13 +20,7 @@ app.get('/', (_req: Request, res: Response) => {
     res.send(html);
 });
 
-
-app.get('/:id', (_req: Request, res: Response) => {
-    console.log("GET at /:id at "+ new Date().toLocaleString());
-    res.redirect('/');
-});
-
-app.post('/redeploy', (_req:Request, res:Response)=>{
+app.get('/redeploy', (_req:Request, res:Response)=>{
     // it runs a redeploy.sh 
     // How can I do it?
     if (_req.headers.authorization !== process.env.REDEPLOY_SECRET) {
