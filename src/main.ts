@@ -5,7 +5,6 @@ import LogRecorder from "./logs.ts";
 // FOR CI-CD
 import { spawn } from "child_process";
 import path from "path";
-import { dot } from 'node:test/reporters';
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -18,39 +17,39 @@ app.use(express.json());
 let logs = new LogRecorder();
 
 app.get('/', (_req: Request, res: Response) => {
-    const html = fs.readFileSync("./index.html", "utf-8");
-    logs.newVisitor();
-    console.log("GET at / at "+ new Date().toLocaleString());
-    res.send(html);
+  const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf-8");
+  logs.newVisitor();
+  console.log("GET at / at " + new Date().toLocaleString());
+  res.send(html);
 });
 
-app.get('/redeploy', (_req:Request, res:Response)=>{
-    // it runs a redeploy.sh 
-    // How can I do it?
-    if (!process.env.REDEPLOY_SECRET) {
-        return res.status(500).send("Redeploy secret not set");
-    }
-    
-    if (_req.headers.authorization !== process.env.REDEPLOY_SECRET) {
-        return res.status(403).send("Forbidden");
-    }
+app.get('/redeploy', (_req: Request, res: Response) => {
+  // it runs a redeploy.sh 
+  // How can I do it?
+  if (!process.env.REDEPLOY_SECRET) {
+    return res.status(500).send("Redeploy secret not set");
+  }
 
-    const scriptPath = path.join(__dirname, "../redeploy.sh");
+  if (_req.headers.authorization !== process.env.REDEPLOY_SECRET) {
+    return res.status(403).send("Forbidden");
+  }
 
-    const child = spawn("bash", [scriptPath], {
-        detached: true,
-        stdio: "ignore"
-    });
+  const scriptPath = path.join(__dirname, "../redeploy.sh");
 
-    child.unref();
+  const child = spawn("bash", [scriptPath], {
+    detached: true,
+    stdio: "ignore"
+  });
 
-    res.json({ message: "Redeploy started" });
-    
-    server.close(() => {
-        process.exit(0);
-    });
+  child.unref();
+
+  res.json({ message: "Redeploy started" });
+
+  server.close(() => {
+    process.exit(0);
+  });
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
