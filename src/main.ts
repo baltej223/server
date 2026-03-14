@@ -49,7 +49,7 @@ app.post('/redeploy', (_req: Request, res: Response) => {
         return res.status(401).send("Forbidden");
     }
 
-    const scriptPath = path.resolve(process.cwd(), "redeploy.sh");
+    const scriptPath = path.resolve(process.cwd(), "..","redeploy.sh");
 
     const child = spawn("bash", [scriptPath], {
         detached: true,
@@ -77,6 +77,7 @@ app.post('/redeploy', (_req: Request, res: Response) => {
         process.exit(0);
     });
 });
+
 
 process.on("SIGINT", () => {
     console.log("Shutting down server...");

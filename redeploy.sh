@@ -9,5 +9,5 @@ mv ./.env ./src/.env
 
 cd ./src
 npm i --force
-sleep 5
+sleep 10
 npm start
