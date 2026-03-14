@@ -17,7 +17,7 @@ app.use(express.json());
 let logs = new LogRecorder();
 
 app.get('/', (_req: Request, res: Response) => {
-  const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf-8");
+  const html = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
   logs.newVisitor();
   console.log("GET at / at " + new Date().toLocaleString());
   res.send(html);
@@ -34,7 +34,7 @@ app.get('/redeploy', (_req: Request, res: Response) => {
     return res.status(403).send("Forbidden");
   }
 
-  const scriptPath = path.join(__dirname, "../redeploy.sh");
+  const scriptPath = path.resolve(process.cwd(), "redeploy.sh");
 
   const child = spawn("bash", [scriptPath], {
     detached: true,
