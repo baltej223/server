@@ -1,7 +1,9 @@
 rm -rf ./src
-git clone https://github.com/baltej223/server.git ./src
+git clone https://github.com/baltej223/server.git ./server
 
-# next I want to download and then run
-cd src
+mv ./server/src ./src
+rm -rf ./server
+
+cd ./src
 npm i --force
 npm start
