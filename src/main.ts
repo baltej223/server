@@ -53,7 +53,8 @@ app.post('/redeploy', (_req: Request, res: Response) => {
 
     const child = spawn("bash", [scriptPath], {
         detached: true,
-        stdio: ["ignore", "pipe", "pipe"]
+        stdio: ["ignore", "pipe", "pipe"],
+        cwd: process.cwd()
     });
 
     child.stdout.on("data", (data) => {
