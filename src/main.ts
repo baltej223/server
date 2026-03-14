@@ -2,6 +2,10 @@ import express, { Request, Response } from 'express';
 import fs from "node:fs";
 import LogRecorder from "./logs.ts";
 
+// FOR CI-CD
+import { spawn } from "child_process";
+import path from "path";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -22,6 +26,29 @@ app.get('/:id', (_req: Request, res: Response) => {
     res.redirect('/');
 });
 
-app.listen(PORT, () => {
+app.post('/redeploy', (_req:Request, res:Response)=>{
+    // it runs a redeploy.sh 
+    // How can I do it?
+    if (_req.headers.authorization !== process.env.REDEPLOY_SECRET) {
+        return res.status(403).send("Forbidden");
+    }
+
+    const scriptPath = path.join(__dirname, "../redeploy.sh");
+
+    const child = spawn("bash", [scriptPath], {
+        detached: true,
+        stdio: "ignore"
+    });
+
+    child.unref();
+
+    res.json({ message: "Redeploy started" });
+    
+    server.close(() => {
+        process.exit(0);
+    });
+});
+
+const server = app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
