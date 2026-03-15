@@ -49,8 +49,11 @@ app.post('/redeploy', (_req: Request, res: Response) => {
   if (!verifyGithubWebhook(_req)) {
     return res.status(401).send("Forbidden");
   }
+  res.status(200).send("Redeploy triggered");
+
   // Killing server with error code 7 for bash to know that it needs redeploy.
   server.close(() => {
+    console.log("closing server!");
     process.exit(7);
   });
 });
