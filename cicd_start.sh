@@ -17,7 +17,7 @@ do
   code=$?
 
   cd ..
-  if [ $code -eq 0 ]; then
+ if [ $code -eq 0 ]; then
       echo "Exited normally. Not restarting."
       break
 
