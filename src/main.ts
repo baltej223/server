@@ -37,6 +37,7 @@ app.get('/', (_req: Request, res: Response) => {
 app.post('/redeploy', (_req: Request, res: Response) => {
   // it runs a redeploy.sh 
   // How can I do it?
+  // Testing if CICD works.
   console.log("Received redeploy request at " + new Date().toLocaleString());
 
   const githubSignature = _req.headers["x-hub-signature-256"];
