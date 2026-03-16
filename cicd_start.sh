@@ -2,13 +2,17 @@
 
 while true
 do
+  cp ./src/logs.txt ./
+
   # for CICD
+
   git clone https://github.com/baltej223/server.git temp 
   rm -rf ./src
   mv temp/src src
   rm -rf temp
 
   cp ./.env ./src/.env
+  mv ./logs.txt ./src/logs.txt
   chmod a+x ./src/run.sh
 
   cd src
