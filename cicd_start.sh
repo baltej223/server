@@ -2,7 +2,7 @@
 
 while true
 do
-  cp ./src/logs.txt ./
+  cp ./src/logs.txt ./logs.txt
 
   # for CICD
 

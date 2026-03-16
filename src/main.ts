@@ -26,6 +26,8 @@ app.use(
 );
 
 let logs = new LogRecorder();
+logs.runningSince();
+
 
 app.get('/', (_req: Request, res: Response) => {
   const html = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");

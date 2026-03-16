@@ -64,4 +64,7 @@ export default class LogRecorder {
             this.boml.edit('visitors', (parseInt(current) + 1).toString());
         }
     }
+    runningSince() {
+        this.boml.edit("last_update", new Date().toLocaleString());
+    }
 }
