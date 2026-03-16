@@ -3,7 +3,6 @@ import fs from "node:fs";
 import LogRecorder from "./logs.ts";
 
 // FOR CI-CD
-import { spawn } from "child_process";
 import path from "path";
 import dotenv from "dotenv";
 import verifyGithubWebhook from './webhook.ts';
@@ -57,6 +56,13 @@ app.post('/redeploy', (_req: Request, res: Response) => {
   server.close(() => {
     console.log("closing server!");
     process.exit(7);
+  });
+});
+
+app.get('/logs', (_req: Request, res: Response) => {
+  res.json({
+    runningSince: logs.getRunningSince(),
+    visitors: logs.getVisitors(),
   });
 });
 

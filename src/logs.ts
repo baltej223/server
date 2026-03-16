@@ -67,4 +67,22 @@ export default class LogRecorder {
     runningSince() {
         this.boml.edit("last_update", new Date().toLocaleString());
     }
+    getVisitors(): number {
+        let current = this.boml.get("visitors");
+        if (current == undefined) {
+            return 0;
+        }
+        else {
+            return parseInt(current);
+        }
+    }
+    getRunningSince(): string {
+        let current = this.boml.get("last_update");
+        if (current == undefined) {
+            return "Unknown";
+        }
+        else {
+            return current;
+        }
+    }
 }
