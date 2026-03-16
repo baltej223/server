@@ -61,7 +61,7 @@ app.post('/redeploy', (_req: Request, res: Response) => {
 
 app.get('/logs', (_req: Request, res: Response) => {
   res.json({
-    runningSince: logs.getRunningSince(),
+    lastUpdate: logs.getRunningSince(),
     visitors: logs.getVisitors(),
   });
 });
